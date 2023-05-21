@@ -121,6 +121,8 @@ class SaveFile():
     def transform(self, encrypt=None):
         if encrypt is None:
             encrypt = self.encripting
+        else:
+            self.encripting = encrypt
         
         for line in self.text:
             line.transform(encrypt)    
@@ -186,6 +188,22 @@ class SaveFile():
         nickname = line.value
         line = self.text[i+1]
         sys.stdout.write(f"ID of the {nickname}={line.value}\n")
+    
+
+    def add_material(self, quantity):
+        for i, line in enumerate(self.text):
+            if line.type != 'pair':
+                continue
+            if line.key == "MaterialQuantity":
+                line.value = str(quantity)
+    
+
+    def add_dust(self, quantity):
+        for i, line in enumerate(self.text):
+            if line.type != 'pair':
+                continue
+            if line.key == "DustQuantity":
+                line.value = str(quantity)
 
 
 if __name__=="__main__":
@@ -193,6 +211,7 @@ if __name__=="__main__":
     parser.add_argument(
         "-f", "--file",
         help="file to use",
+        metavar='PATH',
         required=True,
     )
     parser.add_argument(
@@ -239,12 +258,28 @@ if __name__=="__main__":
     parser.add_argument(
         "-o", "--out",
         help="Location where to put output file. (with file name)", 
+        metavar='PATH',
         default=None,
         required=False
     )
     parser.add_argument(
         "-s", "--search-id",
         help="Search creature's ID by his Name, you need to have this creature in summoned creatures.", 
+        metavar='ID',
+        default=None,
+        required=False
+    )
+    parser.add_argument(
+        "--add-materials",
+        help="Add quantity to all materials in your possesion.",
+        metavar='QUANTITY',
+        default=None,
+        required=False
+    )
+    parser.add_argument(
+        "--add-dust",
+        help="Add quantity to all dust in your possesion.",
+        metavar='QUANTITY',
         default=None,
         required=False
     )
@@ -302,3 +337,19 @@ if __name__=="__main__":
         if save_file.encripting == False:
             save_file.transform()
         save_file.search_id(args.search_id)
+
+    elif args.add_materials:
+        save_file = SaveFile(path_to_file=expanded_path)
+        if save_file.encripting == False:
+            save_file.transform()
+        save_file.add_material(args.add_materials)
+        save_file.transform(1)
+        save_file.save(args.out)
+    
+    elif args.add_dust:
+        save_file = SaveFile(path_to_file=expanded_path)
+        if save_file.encripting == False:
+            save_file.transform()
+        save_file.add_dust(args.add_dust)
+        save_file.transform(1)
+        save_file.save(args.out)
