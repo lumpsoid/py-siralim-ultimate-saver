@@ -12,7 +12,10 @@ chmod +x py-siralim-ultimate-save.py
 
 ## Usage
 ```
-py-siralim-ultimate-save.py --file /path/to/encripted/save --mode dec
-py-siralim-ultimate-save.py --file /path/to/decripted/save --mode enc
+py-siralim-ultimate-save.py --file /path/to/encripted/save --encode
+py-siralim-ultimate-save.py --file /path/to/decripted/save --decode
+py-siralim-ultimate-save.py --file /path/to/decripted/save --search-id 65
+py-siralim-ultimate-save.py --file /path/to/decripted/save --mana --id 65
+py-siralim-ultimate-save.py --file /path/to/decripted/save --knowledge --id 65
 py-siralim-ultimate-save.py --help
 ```
