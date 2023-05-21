@@ -95,7 +95,7 @@ class SaveFile():
     
 
     def encription_check(self):
-        if '\x9a' in self.text[0].line:
+        if '\x9a' in self.text[0].line or '\x9a' in self.text[1].line:
             return False
         else:
             return True
@@ -152,6 +152,10 @@ class SaveFile():
             elif line.key != 'Knowledge2':
                 continue
             break
+
+        if i == len(self.text) - 1:  # debug
+            sys.stdout.write("Block [Knowledge2] was not founded\n")
+            return
         
         find = 0
         line = self.text[i+1]
@@ -162,13 +166,12 @@ class SaveFile():
                 break
         
         if not find:
-            sys.stdout.write("Did not find creature's ID. Maybe you did not encoutered it yet?\n")
-            return -1
-        
-        i *= 2
-        knowledge_array[i+1] = '10000'
+            knowledge_array.append(id)
+            knowledge_array.append('10000')
+        else:
+            i *= 2
+            knowledge_array[i+1] = '10000'
         line.value = ','.join(knowledge_array)
-        return 0
 
 
     def search_id(self, name):
@@ -326,9 +329,7 @@ if __name__=="__main__":
         save_file = SaveFile(path_to_file=expanded_path)
         if save_file.encripting == False:
             save_file.transform()
-        flag = save_file.add_knowledge(args.id)
-        if flag == -1:
-            raise KeyError("ID was not founded.")
+        save_file.add_knowledge(args.id)
         save_file.transform(encrypt=1)
         save_file.save(args.out)
     
