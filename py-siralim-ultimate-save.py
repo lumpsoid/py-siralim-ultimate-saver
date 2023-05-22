@@ -4,6 +4,7 @@ import argparse
 import os
 import sys
 
+
 class Line():
     ENCRYPTION_KEY = "QWERTY"
 
@@ -72,6 +73,11 @@ class Line():
             return f'{self.key}="{self.value}"\n'
 
 
+def enumerate_generator(sequence):
+        for index, item in enumerate(sequence):
+            yield index, item
+
+
 class SaveFile():
     def __init__(self, path_to_file, encripting=None):
         try:
@@ -85,7 +91,7 @@ class SaveFile():
                 self.encripting = encripting
                 check = self.encription_check()
                 if check != self.encripting:
-                    sys.stdout.write("It's seems you are trying decript/encript an decripted/encripted file?\n")
+                    sys.stdout.write("It's seems you are trying decript/encript a decripted/encripted file?\n")
             
             self.path_to_file = path_to_file
             self.changed_text = None 
@@ -95,7 +101,7 @@ class SaveFile():
     
 
     def encription_check(self):
-        if '\x9a' in self.text[0].line or '\x9a' in self.text[1].line:
+        if '\x9a' in self.text[0].key or '\x9a' in self.text[1].key:
             return False
         else:
             return True
@@ -104,10 +110,10 @@ class SaveFile():
     def save(self, path_to_output=None):
         if path_to_output is None:
             path_to_output = self.path_to_file
-            if self.encripting:
-                path_to_output = f'{path_to_output}.sav'
-            else:
+            if self.encription_check():
                 path_to_output = f'{path_to_output}.decoded.txt'
+            else:
+                path_to_output = f'{path_to_output}.sav'
         
         self.changed_text = ''
         for line in self.text:
@@ -121,45 +127,49 @@ class SaveFile():
     def transform(self, encrypt=None):
         if encrypt is None:
             encrypt = self.encripting
-        else:
-            self.encripting = encrypt
         
         for line in self.text:
-            line.transform(encrypt)    
+            line.transform(encrypt)
+    
 
+    def find_line(self, type: str, key: str, value: str = None) -> Line:
+        generator = enumerate_generator(self.text)
+        try:
+            while True:
+                index, line = next(generator)
+                if line.type != type:
+                    continue
+                elif line.key != key:
+                    continue
+                elif value and value not in line.value:
+                    continue
+                return index, line
+        except StopIteration:
+            sys.stdout.write(f"Key={key} was not founded.\nGenerator ended.\n")
+            raise
+    
 
-    def add_summon(self, id) -> None:
+    def add_summon(self, id=None) -> None:
+        if id is None:
+            raise ValueError("Creature ID is needed")
+        
         id = int(id)
-        for line in self.text:
-            if line.type != 'pair':
-                continue
-            elif line.key != 'Summon':
-                continue
-            summon_array = line.value
-            break
-        
-        summon_array = summon_array.split(',')
+        _, line = self.find_line(type='pair', key='Summon')
+        summon_array = line.value.split(',')
         summon_array[id] = '100'
         line.value = ','.join(summon_array)
 
 
-    def add_knowledge(self, id):
+    def add_knowledge(self, id=None):
+        if id is None:
+            raise ValueError("Creature ID is needed")
+
         id = str(id)
-
-        for i, line in enumerate(self.text):
-            if line.type != 'block_name':
-                continue
-            elif line.key != 'Knowledge2':
-                continue
-            break
-
-        if i == len(self.text) - 1:  # debug
-            sys.stdout.write("Block [Knowledge2] was not founded\n")
-            return
-        
-        find = 0
+        i, _ = self.find_line(type='block_name', key='Knowledge2')
         line = self.text[i+1]
         knowledge_array = line.value.split(',')
+        
+        find = 0
         for i, v in enumerate(knowledge_array[::2]):
             if v == id:
                 find = 1
@@ -167,27 +177,15 @@ class SaveFile():
         
         if not find:
             knowledge_array.append(id)
-            knowledge_array.append('10000')
+            knowledge_array.append('4000')
         else:
             i *= 2
-            knowledge_array[i+1] = '10000'
+            knowledge_array[i+1] = '4000'
         line.value = ','.join(knowledge_array)
 
 
     def search_id(self, name):
-        for i, line in enumerate(self.text):
-            if line.type != 'pair':
-                continue
-            elif line.key != 'Nickname':
-                continue
-            elif not name in line.value:
-                continue
-            break
-        
-        if i == len(self.text) - 1:
-            sys.stdout.write("Creature was not founded\n")
-            return
-        
+        i, line = self.find_line(type='pair', key='Nickname', value=name)        
         nickname = line.value
         line = self.text[i+1]
         sys.stdout.write(f"ID of the {nickname}={line.value}\n")
@@ -207,6 +205,50 @@ class SaveFile():
                 continue
             if line.key == "DustQuantity":
                 line.value = str(quantity)
+
+
+def process_actions(args):
+    expanded_path = os.path.expanduser(args.file)
+    
+    if args.encript or args.decript == False:
+        if args.encript and args.decript == False:
+            raise TypeError('Can not encript and decript in one time')
+        elif args.encript:
+            save_file = SaveFile(
+                path_to_file=expanded_path,
+                encripting=args.encript
+            )
+        elif args.decript == False:
+            save_file = SaveFile(
+                path_to_file=expanded_path,
+                encripting=args.decript
+            )
+        save_file.transform()
+        save_file.save(args.out)
+        return
+    
+    save_file = SaveFile(path_to_file=expanded_path)
+    
+    if args.mana or args.knowledge or args.search_id or args.add_materials or args.add_dust:
+        if save_file.encripting == False:
+            save_file.transform()
+        
+        if args.search_id:
+            save_file.search_id(args.search_id)
+            return
+        if args.mana: 
+            save_file.add_summon(args.id)
+        if args.knowledge:
+            save_file.add_knowledge(args.id)
+        if args.add_materials:
+            save_file.add_material(args.add_materials)
+        if args.add_dust:
+            save_file.add_dust(args.add_dust)
+    
+    if args.transform:
+        save_file.transform()
+    save_file.save(args.out)
+
 
 
 if __name__=="__main__":
@@ -288,69 +330,4 @@ if __name__=="__main__":
     )
     args = parser.parse_args()
 
-    if '~' in args.file:
-        expanded_path = os.path.expanduser(args.file)
-    else:
-        expanded_path = args.file
-
-    if args.encript == True or args.decript == False or args.transform == True:
-        if args.encript == True and args.decript == False:
-            raise TypeError('Can not encript and decript in one time')
-        elif args.encript == True:
-            save_file = SaveFile(
-                path_to_file=expanded_path,
-                encripting=args.encript
-            )
-        elif args.decript == False:
-            save_file = SaveFile(
-                path_to_file=expanded_path,
-                encripting=args.decript
-            )
-        elif args.transform == True:
-            save_file = SaveFile(
-                path_to_file=expanded_path
-            )
-        save_file.transform()
-        save_file.save(args.out)
-    
-    elif args.mana == True:
-        if args.id is None:
-            raise ValueError("Creature ID is needed")
-        save_file = SaveFile(path_to_file=expanded_path)
-        if save_file.encripting == False:
-            save_file.transform()
-        save_file.add_summon(args.id)
-        save_file.transform(1)
-        save_file.save(args.out)
-    
-    elif args.knowledge == True:
-        if args.id is None:
-            raise ValueError("Creature ID is needed")
-        save_file = SaveFile(path_to_file=expanded_path)
-        if save_file.encripting == False:
-            save_file.transform()
-        save_file.add_knowledge(args.id)
-        save_file.transform(encrypt=1)
-        save_file.save(args.out)
-    
-    elif args.search_id:
-        save_file = SaveFile(path_to_file=expanded_path)
-        if save_file.encripting == False:
-            save_file.transform()
-        save_file.search_id(args.search_id)
-
-    elif args.add_materials:
-        save_file = SaveFile(path_to_file=expanded_path)
-        if save_file.encripting == False:
-            save_file.transform()
-        save_file.add_material(args.add_materials)
-        save_file.transform(1)
-        save_file.save(args.out)
-    
-    elif args.add_dust:
-        save_file = SaveFile(path_to_file=expanded_path)
-        if save_file.encripting == False:
-            save_file.transform()
-        save_file.add_dust(args.add_dust)
-        save_file.transform(1)
-        save_file.save(args.out)
+    process_actions(args)
