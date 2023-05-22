@@ -189,6 +189,7 @@ class SaveFile():
         nickname = line.value
         line = self.text[i+1]
         sys.stdout.write(f"ID of the {nickname}={line.value}\n")
+        return line.value
     
 
     def add_material(self, quantity):
