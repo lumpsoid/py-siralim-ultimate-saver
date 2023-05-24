@@ -348,12 +348,6 @@ def args_init():
         required=True,
     )
     parser.add_argument(
-        "--file-creatures",
-        help="json file with creature ids",
-        metavar='PATH',
-        required=False,
-    )
-    parser.add_argument(
         "-e", "--encript", 
         help="Encrypt a save file.",
         default=None,
