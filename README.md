@@ -31,8 +31,6 @@ in this line Mimic will get S tear knowledge, get 100 mana for summoning, and yo
 options:
   -h, --help            show this help message and exit
   -f PATH, --file PATH  file to use
-  --file-creatures PATH
-                        json file with creature ids
   -e, --encript         Encrypt a save file.
   -d, --decript         Decrypt a save file.
   -t, --transform       Auto define state of the save file and decript/encript accordingly
