@@ -24,7 +24,7 @@ you also can chain parameters:
 ```
 siralimctl.py -tmkCf /path/to/encripted/save/file --name 'Mimic' --personality 15
 ```
-in this line Mimic will get S tear knowledge, get 100 mana for summoning, and you caracter will get 1 copy of Mimic with 15'th personality, and final file would be already encrypted and ready to load in game.
+in this line Mimic will get S tear knowledge, get 100 mana for summoning, and you character will get 1 copy of Mimic with 15'th personality, and final file would be already encrypted and ready to load in game.
 
 ## CTL Options
 ```
