@@ -1,11 +1,11 @@
 #!/bin/python
-from typing import Union
-import re
 import argparse
 import os
-import sys
-import json
+import re
 import subprocess
+import sys
+from typing import Union
+
 import data
 
 
