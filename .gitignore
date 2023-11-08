@@ -2,3 +2,5 @@ setup.py
 __pycache__
 siralimctl.egg-info
 creatures_data.json
+.ipynb_checkpoints
+siralimEditor.egg-info

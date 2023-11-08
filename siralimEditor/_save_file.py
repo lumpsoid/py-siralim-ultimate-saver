@@ -1,86 +1,12 @@
 #!/bin/python
-import argparse
 import os
-import re
 import subprocess
 import sys
 from typing import Union
 
-import data
-
-
-class Line():
-    ENCRYPTION_KEY = "QWERTY"
-    stacirt_number = re.compile(r'[0-9]+')
-
-    def __init__(self, line: str) -> None:
-        self.line = line.replace('\n', '')
-        
-        if self.line[0] == '[':
-            self.type = 'block_name'
-            self.key = self.line[1:-1]
-            self.value = None
-        elif self.line[-1] == '"':
-            self.type = 'pair'
-            self.key, self.value = self.line.split('=')
-            self.value = self.value[1:-1]
-        else:
-            self.type = 'null'
-            self.key, self.value = None, None
-
-    
-    def __str__(self):
-        return f'{self.line}'
-    
-
-    def __repr__(self):
-        return f'{self.line}'
-    
-
-    def encryption(self, value, encrypt):
-        if len(value) == 0:
-            return ''
-        output = []
-        KEY_MAX_INDEX = len(Line.ENCRYPTION_KEY)
-        
-        for index, c in enumerate(value):
-            CodePointInput = ord(c)
-            codePointKey = ord(Line.ENCRYPTION_KEY[index % KEY_MAX_INDEX])
-            
-            if encrypt:
-                output_char = chr(CodePointInput + codePointKey)
-            else:
-                output_char = chr(CodePointInput - codePointKey)
-            
-            output.append(output_char)
-        
-        return ''.join(output)
-        
-
-    def transform(self, encrypt):
-        if self.type == "null":
-            return
-        elif self.type == "block_name":
-            self.key = self.encryption(self.key, encrypt)
-            # self.line = f'[{self.key}]\n'
-        elif self.type == "pair":
-            self.key = self.encryption(self.key, encrypt)
-            self.value = self.encryption(self.value, encrypt)
-            # self.line = f'{self.encryption(self.key, encrypt)}="{self.encryption(self.value, encrypt)}"\n'
-    
-
-    def format_save(self):
-        if self.type == "null":
-            return ''
-        if self.type == "block_name":
-            return f'[{self.key}]\n'
-        elif self.type == "pair":
-            return f'{self.key}="{self.value}"\n'
-
-
-def enumerate_generator(sequence):
-        for index, item in enumerate(sequence):
-            yield index, item
+from ._data import knowledge, creature_ids, creature_template
+from ._utils import enumerate_generator
+from ._line import Line
 
 
 class SaveFile():
@@ -203,7 +129,7 @@ class SaveFile():
 
 
     def add_material(self, quantity) -> None:
-        for i, line in enumerate(self.text):
+        for _, line in enumerate(self.text):
             if line.type != 'pair':
                 continue
             if line.key == "MaterialQuantity":
@@ -211,7 +137,7 @@ class SaveFile():
     
 
     def add_dust(self, quantity) -> None:
-        for i, line in enumerate(self.text):
+        for _, line in enumerate(self.text):
             if line.type != 'pair':
                 continue
             if line.key == "DustQuantity":
@@ -219,7 +145,7 @@ class SaveFile():
     
 
     def get_creature_id(self, nickname: str) -> str:
-        id = data.creature_ids.get(nickname)
+        id = creature_ids.get(nickname)
         if id is None:
             raise ValueError(f"ID of the {nickname} is missing.")
         
@@ -259,7 +185,7 @@ class SaveFile():
 
         creature_data = []
         creature_data.append(Line(f'[StaCrit{sta_crit_num}]'))
-        for k, v in data.creature_template.items():
+        for k, v in creature_template.items():
             if v is None:
                 if k == "Personality":
                     v = personality
@@ -285,162 +211,3 @@ class SaveFile():
         self.__init__(tmp_file_path)
         self.path_to_file = origianl_path
         os.remove(tmp_file_path)
-
-
-
-def process_actions(args):
-    expanded_path = os.path.expanduser(args.file)
-    
-    if args.encript or args.decript == False:
-        if args.encript and args.decript == False:
-            raise TypeError('Can not encript and decript in one time')
-        elif args.encript:
-            save_file = SaveFile(
-                path_to_file=expanded_path,
-                encripting=args.encript
-            )
-        elif args.decript == False:
-            save_file = SaveFile(
-                path_to_file=expanded_path,
-                encripting=args.decript
-            )
-        save_file.transform()
-        save_file.save(args.out)
-        return
-    
-    save_file = SaveFile(path_to_file=expanded_path)
-    
-    if args.mana or args.knowledge or args.get_id \
-        or args.add_materials or args.add_dust or args.editor \
-        or args.add_creature:
-        
-        if save_file.encripting == False:
-            save_file.transform()
-        
-        if args.get_id:
-            save_file.get_creature_id(args.get_id)
-            return
-        if args.mana: 
-            save_file.add_summon(args.name)
-        if args.knowledge:
-            save_file.add_knowledge(args.name)
-        if args.add_materials:
-            save_file.add_material(args.add_materials)
-        if args.add_dust:
-            save_file.add_dust(args.add_dust)
-        if args.add_creature:
-            save_file.add_creature(args.name, args.personality)
-        
-        if args.editor:
-            save_file.edit_file(args.editor)
-
-    if args.transform:
-        save_file.transform()
-    save_file.save(args.out)
-
-
-def args_init():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-f", "--file",
-        help="file to use",
-        metavar='PATH',
-        required=True,
-    )
-    parser.add_argument(
-        "-e", "--encript", 
-        help="Encrypt a save file.",
-        default=None,
-        action='store_true',
-        required=False
-    )
-    parser.add_argument(
-        "-d", "--decript", 
-        help="Decrypt a save file.",
-        default=None,
-        action='store_false',
-        required=False
-    )
-    parser.add_argument(
-        "-t", "--transform", 
-        help="Auto define state of the save file and decript/encript accordingly",
-        default=None,
-        action='store_true',
-        required=False
-    )
-    parser.add_argument(
-        "-m", "--mana", 
-        help="Adding mana for creature summoning.",
-        default=None,
-        action='store_true',
-        required=False
-    )
-    parser.add_argument(
-        "-k", "--knowledge",
-        help="Add knowledge experience to creature", 
-        action='store_true',
-        default=None,
-        required=False
-    )
-    parser.add_argument(
-        "-n", "--name",
-        help="Creature's Nickname", 
-        default=None,
-        required=False
-    )
-    parser.add_argument(
-        "-o", "--out",
-        help="Location where to put output file. (with file name)", 
-        metavar='PATH',
-        default=None,
-        required=False
-    )
-    parser.add_argument(
-        "--get-id",
-        help="Get ingame id of the creature.", 
-        metavar='NAME',
-        default=None,
-        required=False
-    )
-    parser.add_argument(
-        "--add-materials",
-        help="Add quantity to all materials in your possesion.",
-        metavar='QUANTITY',
-        default=None,
-        required=False
-    )
-    parser.add_argument(
-        "--add-dust",
-        help="Add quantity to all dust in your possesion.",
-        metavar='QUANTITY',
-        default=None,
-        required=False
-    )
-    parser.add_argument(
-        "-E", "--editor",
-        help="Edit decoded file.",
-        metavar='EDITOR',
-        default=None,
-        required=False
-    )
-    parser.add_argument(
-        "-C", "--add-creature",
-        help="Add creature to your withdraw list.",
-        action='store_true',
-        default=None,
-        required=False
-    )
-    parser.add_argument(
-        "-P", "--personality",
-        help="Choose personality id for your creature.",
-        metavar='ID',
-        default=None,
-        required=False
-    )
-    args = parser.parse_args()
-    return args
-
-
-if __name__=="__main__":
-    args = args_init()
-    process_actions(args)
