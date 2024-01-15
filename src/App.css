@@ -1,0 +1,13 @@
+.App {
+  text-align: center;
+}
+
+.card {
+  width: 35vw;
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  margin-top: 5px !important;
+}
